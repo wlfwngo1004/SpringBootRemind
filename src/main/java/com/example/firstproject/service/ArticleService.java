@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -45,7 +47,7 @@ public class ArticleService {
             return null;
         }
         // 4. 업데이트 및 정상 응답(200) 하기
-        target.patch(article); // 일부 데이터만 수정하기! 아무런 값을 입력안하면 null로 수정돼니까! Article 엔티티 클래스에 메소드를 따로 만듦!
+        target.patch(article); // 일부 데이터만 수정하기! 아무런 값을 입력안하면 null로 수정되니까! Article 엔티티 클래스에 메소드를 따로 만듦!
         Article updated = articleRepository.save(target);
         return updated;
     }
@@ -60,5 +62,17 @@ public class ArticleService {
         // 3. 대상 삭제하기
         articleRepository.delete(target);
         return target;
+    }
+
+    @Transactional
+    public List<Article> createArticles(List<ArticleForm> dtos) {
+        // 1. dto 묶음(리스트)을 엔티티 묶음(리스트)으로 변환하기
+        List<Article> articleList = dtos.stream().map(dto -> dto.toEntity()).collect(Collectors.toList());
+        // 2. 엔티티 묶음을 DB에 저장하기
+        articleList.stream().forEach(article -> articleRepository.save(article));
+        // 3. 강제 예외 발생시키기
+        articleRepository.findById(-1L).orElseThrow(() -> new IllegalArgumentException("결제 실패!"));
+        // 4. 결과 값 반환하기
+        return articleList;
     }
 }
